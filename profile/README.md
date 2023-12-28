@@ -226,5 +226,5 @@ Please note that this assumes you did not hard-code the URLs and are using API m
 Designed & written by Tored.  
 Bridge Launcher is my attempt at making launcher development approachable by reducing dealing with Android to using a simple API. 
 
-- [Discord server](https://bit.ly/bridge-launcher-discord) - I blogpost as I go
+- [Discord server](https://discord.gg/Tv23aZrVb8) - I blogpost as I go
 - [theothertored@gmail.com](mailto:theothertored@gmail.com) - Contact email
