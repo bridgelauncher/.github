@@ -30,7 +30,7 @@ To allow you to have a WIP project without losing the ability to launch apps, Br
     - Interact with the system wallpaper: set pages, set scroll position, send taps to live wallpapers,
     - Set status & navigation bar appearance (hide, light foreground, dark foreground),
     - Change the system night mode (requires granting `android.permission.WRITE_SECURE_SETTINGS` via `adb`),
-    - Lock (turn off) the screen (requires granting system admin access to Bridge Launcher and allowing projects to lock the screen in settings),
+    - Lock (turn off) the screen (requires enabling an accessibility service and allowing projects to lock the screen in settings),
 
 - Development features:
     - Export apps installed on the device and their icons to use during development,
@@ -106,6 +106,17 @@ const img = document.createElement('img')
 // let the img handle the loading
 img.src = Bridge.getDefaultAppIconUrl('com.tored.bridgelauncher')
 document.body.appendChild(img);
+```
+
+### Changing system night mode
+
+To change system night mode, Bridge must be granted either `android.permission.WRITE_SECURE_SETTINGS` or `android.permission.MODIFY_DAY_NIGHT_MODE`.
+The former can be granted via adb, the latter can't be granted without serious effort at the time of writing this message, because (for unknown reasons) it is restricted to system apps only.
+
+[How to install ADB on Windows, macOS, and Linux | XDA Developers](https://www.xda-developers.com/install-adb-windows-macos-linux/)
+
+```
+adb shell pm grant com.tored.bridgelauncher android.permission.WRITE_SECURE_SETTINGS
 ```
 
 ### Listening for events
