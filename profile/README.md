@@ -231,6 +231,126 @@ Please note that this assumes you did not hard-code the URLs and are using API m
 - Get the [source code](https://github.com/bridgelauncher/api-mock) and modify it to your needs.
 
 
+### Tips & tricks
+
+#### Scrolling page by page instead of continously
+
+I highly recommend familiarizing yourself with CSS scroll snapping. This will give your scrolling a feeling close to or identical with native scrolling, without Javascript (which can be laggy for scrolling, especially on mobile!).
+
+- [Practical CSS Scroll Snapping | CSS Tricks](https://css-tricks.com/practical-css-scroll-snapping/)
+- [CSS scroll snap - MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll_snap)
+
+#### Converting a number of pages to wallpaper offset steps
+
+To inform Android about the number of pages you want the wallpaper to have, horizontal and vertical "wallpaper offset steps" need to be provided. The steps are numbers between 0 and 1. To translate from pages to steps, think about the `step` like this:
+
+- `0` means the user is on the 1st page
+- `1` means the user is on the last page
+- `0 + step` means the user is on the 2nd page
+- `0 + step + step` means the user is on the 3rd page
+- etc.
+
+For example, if there are 2 pages, the 2nd page = the last page, so `0 + step = 1`, therefore `step = 1`.  
+If there are 3 pages, the 3rd `0 + step` is the second page and `0 + step + step` is the last page.  
+Simplyfing, `step * 2 = 1`, therefore `step = 0.5`.
+
+The formula is `1 / (page count - 1)` when `page count > 1` and `0` when `page count = 1` (to avoid division by 0). 
+
+Example page count to offset steps conversion:
+
+```js
+const xPages = 3; 
+const yPages = 2;
+const p2o = p => p > 1 ? 1 / (p - 1) : 0;
+Bridge.setWallpaperOffsetSteps(p2o(xPages), p2o(yPages));
+```
+
+#### Converting a scroll position to wallpaper offsets
+
+To inform Android about the current position the wallpaper should be scrolled to, "wallpaper offsets" need to be provided. The offsets are numbers between 0 and 1.
+
+- `0` means the user is on the 1st page
+- `1` means the user is on the last page
+- `0.5` means the user is halfway between the 1st and last page. 
+    - If you have 2 pages, this means the user is halfway between the 1st and 2nd page. 
+    - If you have 3 pages, this means the user is on the 2nd page. 
+    - etc.
+
+Your scrolling will most likely be done using a HTML element (`el`) with `overflow: scroll` or `auto`.
+
+In JS, `el.scrollWidth` and `el.scrollHeight` can be used to get the total height of the element's contents. These numbers include the element's own height, plus the height of any overflowing content. You can imagine the element as a small rectangle and its contents as a bigger rectangle that moves when the element is scrolled, but never leaves an empty spot between itself and any edge of the small rectangle.
+
+`el.scrollLeft` and `el.scrollTop` can be used to get the current horizontal and vertical scroll offset of the element respectively. The maximum value for `el.scrollLeft` is `el.scrollWidth - el.clientWidth`. This is because scrolling an element to the end means the content's end lines up with the element's end and there's one "screen" worth of content still visible.
+
+The X offset is `0` when `el.scrollLeft = 0` and `1` when `el.scrollLeft = el.scrollWidth - el.clientWidth`.
+Therefore, X offset = `el.scrollLeft / (el.scrollWidth - el.clientWidth)`, or 0 if `el.scrollWidth - el.clientWidth = 0`.
+
+Example window scroll position to wallpaper offsets conversion:
+
+```js
+window.addEventListener('scroll', ev => {
+     requestAnimationFrame(() => {
+         const xMaxScroll = window.scrollWidth - window.innerWidth;
+         const yMaxScroll = window.scrollHeight - window.innerHeight;
+         const xScroll = window.scrollLeft;
+         const yScroll = window.scrollTop;
+         Bridge.setWallpaperOffsets(
+            xMaxScroll === 0 ? 0 : xScroll / xMaxScroll, 
+            yMaxScroll === 0 ? 0 : yScroll / yMaxScroll
+        );
+     });
+});
+```
+
+#### Disable text selecting on long-press
+
+By default, long-pressing text in a WebView selects it. To disable this behaviour, give the element you want to disable it for the CSS property `user-select: none`.
+
+Putting `user-select: none` on an element does not disable selecting in inputs and textareas inside that element. Additionally, if the property is set to another value (like `auto`) for a descendant, that descendant will be selectable.
+
+```css
+html {
+    user-select: none;
+}
+
+.selectable {
+    user-select: auto;
+}
+```
+
+#### Remove blue highlights appearing when tapping elements
+
+The blue highlight can be disabled by giving an element the CSS property `-webkit-tap-highlight-color: transparent`. I highly recommend setting this on all elements:
+
+```css
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+```
+
+#### Use the HTML template element instead of creating elements manually
+
+[The Content Template Element | MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template)
+
+```html
+<template id="appListItemTemplate">
+    <div class="app-list-item">
+        <span class="label"></span>
+        <span class="package-name"></span>
+    </div>
+</template>
+```
+
+```js
+const template = document.getElementById('appListItemTemplate');
+for (const app of apps)
+{
+    const item = template.content.firstElementChild.cloneNode(true);
+    item.querySelector('.label').innerText = app.label;
+    item.querySelector('.package-name').innerText = app.label;
+    container.appendChild(item);
+}
+```
 
 ## About
 
