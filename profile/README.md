@@ -91,7 +91,7 @@ You can open the [Bridge.d.ts](https://github.com/bridgelauncher/api/blob/master
 
 Bridge serves the current list of apps as JSON from an endpoint accessible via `Bridge.getAppsURL()`. Example using `fetch()`:
 ```ts
-fetch(Bridge.getAppsEndpoint())
+fetch(Bridge.getAppsURL())
     .then(resp => resp.json() as BridgeGetAppsResponse)
     .then(resp => {
         // do something with the list of apps
@@ -121,19 +121,19 @@ adb shell pm grant com.tored.bridgelauncher android.permission.WRITE_SECURE_SETT
 
 ### Listening for events
 
-If the global variable `onBridgeEvent` is set to a function, Bridge will call that function whenever an event occurs. The first argument passed will be name of the event, and the second will be an object if the event has arguments, or `undefined` if the event does not have arguments.
+If the global variable `onBridgeEvent` is set to a function, Bridge will call that function whenever an event occurs, passing an event object to it.
 
-The [Bridge.d.ts](https://github.com/bridgelauncher/api/blob/master/Bridge.d.ts) file contains a `BridgeEventMap` interface, which is a map of event names to their argument types.
+The [Bridge.d.ts](https://github.com/bridgelauncher/api/blob/master/Bridge.d.ts) file describes all `BridgeEvent` types, as well as the `BridgeEvent` type, which is a union of all possible `BridgeEvent` types.
 
 #### Single listener
 
-The simplest way to handle events is to do everything directly inside the listener function:
+The simplest way to handle events is to do it directly inside the listener function:
 
 ```ts
-window.onBridgeEvent = (name, args) => {
+window.onBridgeEvent = event => {
     // could use a switch() statement instead
-    if (name === 'appRemoved') {        // autocomplete will help with event names
-        console.log(args.packageName);  // args will be strongly typed
+    if (event.name === 'appRemoved') {   // autocomplete will help pick event names
+        console.log(event.packageName);  // event type will be narrowed down
     } else if (...) {
         ...
     }
@@ -149,28 +149,17 @@ You can create your own system to dispatch the events received via `onBridgeEven
 const listeners = new Set<BridgeEventListener>();
 
 // upon receiving an event, forward it to all listeners
-window.onBridgeEvent = (...event: BridgeEventListenerArgs) => {
+window.onBridgeEvent = (event: BridgeEvent) => {
     listeners.forEach(l => l(...event));
 }
 
 // adding a listener later in the code
-listeners.add((name, args) => {
-    if (name === 'appRemoved') {        // autocomplete will help with event names
-        console.log(args.packageName)   // args will be strongly typed
+listeners.add(event => {
+    if (event.name === 'appRemoved') {   // autocomplete will help pick event names
+        console.log(event.packageName)   // event type will be narrowed down
     }
 })
 ```
-
-Please note the arguments being specified as `(...event: BridgeEventListenerArgs)` and later used as `...event` - this is to maintain a connection between the event name and its args.
-
-```ts
-window.onBridgeEvent = (name, args) => {
-    // typescript won't maintain a connection between the event name and the type of args,
-    // which will result in an error on this line
-    listeners.forEach(l => l(name, args)); 
-}
-```
-
 
 
 ### Mocking the Bridge API
@@ -230,6 +219,44 @@ Please note that this assumes you did not hard-code the URLs and are using API m
 - Create your own class that extends `BridgeMock` and override public or protected methods,
 - Get the [source code](https://github.com/bridgelauncher/api-mock) and modify it to your needs.
 
+### Pushing changes to a device/emulator via adb
+
+Mocking is good for speeding development up by testing on your machine, but you will also need to transfer your project to the device you wish to use it on. This can be done manually, but quickly becomes tedious. It's better to automate it.
+
+Example batch (`.bat`) file (Windows Command Prompt) for pushing a Vue project's `dist` directory to an Android device via `adb`:
+
+Prerequisite: [How to install ADB on Windows, macOS, and Linux | XDA Developers](https://www.xda-developers.com/install-adb-windows-macos-linux/)
+
+`publish.bat`:
+
+```cmd
+REM CAREFUL! set serial = emulator-5554 IS NOT THE SAME AS set serial=emulator-5554
+REM the former will include the spaces around = in the variable name and value!
+
+@echo off
+
+REM Which device to push to. Run "adb devices" to find available serials,
+REM or remove "-s %serial%" to push to the default adb device.
+set serial=emulator-5554
+REM Which local directory to push.
+set source=dist
+REM Where to push the local directory to.
+set androidpath=/sdcard/BridgeLauncherProjects/
+REM What to rename the source directory to after pushing.
+set projectname=<your project name>
+REM Remove old project files from the destination directory
+adb -s %serial% shell "rm %androidpath%/%projectname% -r;"
+REM Push local directory to destination directory
+adb -s %serial% push %source% %androidpath%
+REM Rename pushed directory to project name
+adb -s %serial% shell "mv %androidpath%/%source% %androidpath%/%projectname%"
+```
+
+To push, just run the `.bat` file:
+
+```cmd
+.\publish
+```
 
 ### Tips & tricks
 
